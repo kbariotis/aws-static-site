@@ -3,16 +3,16 @@ const glob = require('glob');
 const fs = require('fs');
 const path = require('path');
 const BPromise = require('bluebird');
-const mime = require('mime-types')
+const mime = require('mime-types');
 
 const cloudFront = new AWS.CloudFront({
-  region: 'eu-central-1'
+  region: 'eu-central-1',
 });
 
 const s3 = new AWS.S3({
   apiVersion: '2006-03-01',
   signatureVersion: 'v4',
-  region: 'eu-central-1'
+  region: 'eu-central-1',
 });
 
 /**
@@ -25,7 +25,7 @@ const s3 = new AWS.S3({
 function init(options) {
   return {
     deploy: () => deploy(options.siteName, options.uploadFolder),
-  }
+  };
 }
 
 /**
@@ -34,17 +34,19 @@ function init(options) {
  * @returns {Promise<(string|null)>}
  */
 function getDistributionId(S3BucketToUpload) {
-  return cloudFront.listDistributions().promise()
+  return cloudFront
+    .listDistributions()
+    .promise()
     .then(list => list.DistributionList.Items)
     .then(items => items.filter(item => item.Aliases.Items.indexOf(S3BucketToUpload) > -1))
     .then(filteredItems => (filteredItems.length ? filteredItems[0].Id : null))
-    .then((id) => {
+    .then(id => {
       if (!id) {
         return createDistribution(S3BucketToUpload);
       }
 
       return id;
-    })
+    });
 }
 
 /**
@@ -53,57 +55,56 @@ function getDistributionId(S3BucketToUpload) {
  * @returns {Promise}
  */
 function createDistribution(S3BucketToUpload) {
-  return cloudFront.createDistribution({
-    DistributionConfig: {
-      CallerReference: Date.now().toString(),
-      Comment: 'Created by aws-static-state',
-      DefaultCacheBehavior: {
-        ForwardedValues: {
-          Cookies: {
-            Forward: 'all',
-          },
-          QueryString: true
-        },
-        MinTTL: 0,
-        TargetOriginId: `${S3BucketToUpload}-${Date.now().toString()}`,
-        TrustedSigners: {
-          Enabled: true,
-          Quantity: 0,
-        },
-        ViewerProtocolPolicy: 'redirect-to-https',
-        Compress: true
-      },
-      Enabled: true,
-      Origins: {
-        Quantity: 1,
-        Items: [
-          {
-            DomainName: `${S3BucketToUpload}.s3.amazonaws.com`,
-            Id: `${S3BucketToUpload}-${Date.now().toString()}`,
-            S3OriginConfig: {
-              OriginAccessIdentity: '',
+  return cloudFront
+    .createDistribution({
+      DistributionConfig: {
+        CallerReference: Date.now().toString(),
+        Comment: 'Created by aws-static-state',
+        DefaultCacheBehavior: {
+          ForwardedValues: {
+            Cookies: {
+              Forward: 'all',
             },
-            OriginPath: ''
-          }
-        ]
+            QueryString: true,
+          },
+          MinTTL: 0,
+          TargetOriginId: `${S3BucketToUpload}-${Date.now().toString()}`,
+          TrustedSigners: {
+            Enabled: true,
+            Quantity: 0,
+          },
+          ViewerProtocolPolicy: 'redirect-to-https',
+          Compress: true,
+        },
+        Enabled: true,
+        Origins: {
+          Quantity: 1,
+          Items: [
+            {
+              DomainName: `${S3BucketToUpload}.s3.amazonaws.com`,
+              Id: `${S3BucketToUpload}-${Date.now().toString()}`,
+              S3OriginConfig: {
+                OriginAccessIdentity: '',
+              },
+              OriginPath: '',
+            },
+          ],
+        },
+        Aliases: {
+          Quantity: 1,
+          Items: [S3BucketToUpload],
+        },
+        DefaultRootObject: 'index.html',
+        HttpVersion: 'http2',
+        IsIPV6Enabled: true,
+        ViewerCertificate: {
+          CertificateSource: 'cloudfront',
+          CloudFrontDefaultCertificate: true,
+        },
       },
-      Aliases: {
-        Quantity: 1,
-        Items: [
-          S3BucketToUpload,
-        ]
-      },
-      DefaultRootObject: 'index.html',
-      HttpVersion: 'http2',
-      IsIPV6Enabled: true,
-      ViewerCertificate: {
-        CertificateSource: 'cloudfront',
-        CloudFrontDefaultCertificate: true
-      }
-    }
-  })
+    })
     .promise()
-    .then(response => response.Distribution.Id)
+    .then(response => response.Distribution.Id);
 }
 
 /**
@@ -117,15 +118,14 @@ function createDistribution(S3BucketToUpload) {
  * @returns {Promise}
  */
 function invalidateCache(bucketName, filesToInvalidate) {
-  return getDistributionId(bucketName)
-    .then(id => {
-      if (!id) {
-        console.log('No Cloudfront distribution found. Skipping cache invalidation.');
-        return true;
-      }
+  return getDistributionId(bucketName).then(id => {
+    if (!id) {
+      console.log('No Cloudfront distribution found. Skipping cache invalidation.');
+      return true;
+    }
 
-      return createInvalidation(id, filesToInvalidate);
-    });
+    return createInvalidation(id, filesToInvalidate);
+  });
 }
 
 /**
@@ -135,16 +135,17 @@ function invalidateCache(bucketName, filesToInvalidate) {
  * @returns {Promise}
  */
 function createInvalidation(id, filesToInvalidate) {
-  return cloudFront.createInvalidation({
-    DistributionId: id,
-    InvalidationBatch: {
-      CallerReference: Date.now().toString(),
-      Paths: {
-        Quantity: filesToInvalidate.length,
-        Items: filesToInvalidate,
-      }
-    }
-  })
+  return cloudFront
+    .createInvalidation({
+      DistributionId: id,
+      InvalidationBatch: {
+        CallerReference: Date.now().toString(),
+        Paths: {
+          Quantity: filesToInvalidate.length,
+          Items: filesToInvalidate,
+        },
+      },
+    })
     .promise()
     .then(() => true);
 }
@@ -157,8 +158,9 @@ function createInvalidation(id, filesToInvalidate) {
 function uploadFiles(folderToUpload, bucketName) {
   const files = glob.sync(`${folderToUpload}/**/*.*`);
 
-  return BPromise.map(files, (file) => uploadFile(bucketName, file.replace(folderToUpload, '')))
-    .then(files => files.filter(file => !!file).map(file => `/${file}`))
+  return BPromise.map(files, file =>
+    uploadFile(bucketName, file.replace(folderToUpload, ''))
+  ).then(files => files.filter(file => !!file).map(file => `/${file}`));
 }
 
 /**
@@ -169,26 +171,27 @@ function uploadFiles(folderToUpload, bucketName) {
 function uploadFile(bucketName, file) {
   const params = {
     Bucket: bucketName,
-    ACL: 'public-read'
+    ACL: 'public-read',
   };
 
   let fileObject = Object.assign({}, params, {
     Body: fs.readFileSync(file),
-    Key: file
+    Key: file,
   });
 
   const ext = path.parse(file).ext;
   fileObject = Object.assign({}, fileObject, {
-    ContentType: mime.lookup(ext)
+    ContentType: mime.lookup(ext),
   });
 
-  return s3.putObject(fileObject)
+  return s3
+    .putObject(fileObject)
     .promise()
     .then(() => {
       console.log(`${file} file uploaded`);
       return file;
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(`Error while uploading ${file}`);
       throw new Error(err);
     });
@@ -200,28 +203,33 @@ function uploadFile(bucketName, file) {
  * @returns {Promise}
  */
 function createBucket(bucketName) {
-  return s3.createBucket({
-    Bucket: bucketName,
-  })
+  return s3
+    .createBucket({
+      Bucket: bucketName,
+    })
     .promise()
-    .catch((err) => {
+    .catch(err => {
       if (err.code !== 'BucketAlreadyOwnedByYou') {
         throw new Error(err);
       }
 
       return true;
     })
-    .then(() => s3.putBucketWebsite({
-      Bucket: bucketName,
-      WebsiteConfiguration: {
-        IndexDocument: {
-          Suffix: 'index.html'
-        },
-        ErrorDocument: {
-          Key: 'error.html'
-        }
-      }
-    }).promise())
+    .then(() =>
+      s3
+        .putBucketWebsite({
+          Bucket: bucketName,
+          WebsiteConfiguration: {
+            IndexDocument: {
+              Suffix: 'index.html',
+            },
+            ErrorDocument: {
+              Key: 'error.html',
+            },
+          },
+        })
+        .promise()
+    )
     .then(() => true);
 }
 
@@ -235,9 +243,9 @@ function createBucket(bucketName) {
 function deploy(S3BucketToUpload, uploadFolder) {
   return createBucket(S3BucketToUpload)
     .then(() => uploadFiles(uploadFolder, S3BucketToUpload))
-    .then((files) => invalidateCache(S3BucketToUpload, files))
+    .then(files => invalidateCache(S3BucketToUpload, files))
     .then(() => console.log('Upload done.'))
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
       process.exit(1);
     });
