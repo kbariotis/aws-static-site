@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "lint": "./node_modules/.bin/eslint src/**/*.js test/**/*.js",
-    "precommit": "npm run lint --- --fix"
+    "precommit": "npm run lint --- --fix && git add ."
   },
   "devDependencies": {
     "aws-sdk": "^2.128.0",
