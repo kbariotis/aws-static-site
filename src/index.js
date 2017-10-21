@@ -246,7 +246,7 @@ function deploy(S3BucketToUpload, uploadFolder) {
     .then(files => invalidateCache(S3BucketToUpload, files))
     .then(() => console.log('Upload done.'))
     .catch(err => {
-      console.log(err);
+      console.log(err)
       process.exit(1);
     });
 }
