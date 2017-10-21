@@ -1,0 +1,82 @@
+{
+  "env": {
+    "es6": true,
+    "node": true,
+    "mocha": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:promise/recommended",
+    "prettier"
+  ],
+  "plugins": [
+    "prettier",
+    "promise",
+    "import",
+    "mocha"
+  ],
+  "rules": {
+    "import/no-extraneous-dependencies": "error",
+    "mocha/no-exclusive-tests": "error",
+    "promise/always-return": "error",
+    "promise/no-nesting": "warn",
+    "no-template-curly-in-string": "error",
+    "curly": "error",
+    "no-console": "off",
+    "no-empty-function": "error",
+    "no-lone-blocks": "error",
+    "require-jsdoc": "error",
+    "no-new-require": "error",
+    "camelcase": [
+      "warn",
+      {
+        "properties": "never"
+      }
+    ],
+    "prettier/prettier": [
+      "warn",
+      {
+        "singleQuote": true,
+        "trailingComma": "es5",
+        "printWidth": 100
+      }
+    ],
+    "linebreak-style": [
+      "error",
+      "unix"
+    ],
+    "valid-jsdoc": [
+      "error",
+      {
+        "requireParamDescription": false,
+        "requireReturnDescription": false
+      }
+    ],
+    "func-style": [
+      "error",
+      "declaration"
+    ],
+    "func-names": [
+      "error",
+      "always"
+    ],
+    "max-statements-per-line": [
+      "error",
+      {
+        "max": 1
+      }
+    ],
+    "one-var": [
+      "error",
+      "never"
+    ],
+    "comma-dangle": [
+      "error",
+      {
+        "objects": "always-multiline",
+        "arrays": "always-multiline",
+        "functions": "never"
+      }
+    ]
+  }
+}
